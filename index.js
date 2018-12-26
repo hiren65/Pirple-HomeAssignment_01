@@ -20,14 +20,37 @@ var server = http.createServer(function(req,res){
   //get payload if any
   var decoder = new StringDecoder('utf-8');
   var buffer = "";
-  //data event posting
+  //data event  posting
   req.on('data',function(data){
       buffer += decoder.write(data);
   });
   req.on('end',function(){
      buffer += decoder.end();
-     res.end("Hello World");
-     console.log("buffer " + buffer);
+     //get and select handler that go to query founf or  not
+     var choseHandler = typeof(router[trimmedPath]) !== 'undefined' ? router[trimmedPath] : handler.notFound;
+     //construct data queryStringObject
+     var data = {
+            'trimmedPath':trimmedPath,
+            'queryStringObject':queryStringObject,
+            'header':header,
+            'payload':buffer,
+            'method':method
+     }
+     //Route the request to the handler  specified in the router
+     choseHandler(data,function(statusCode,payload){
+      //use the status code by the handler, or default to 200
+            statusCode = typeof(statusCode) == 'number' ? statusCode : 200;
+      //use the payload callback by the handler or default to an empty objejct
+            payload = typeof(payload) == 'object' ? payload : {};
+      // convert the payload to string
+            var payloadString = JSON.stringify(payload);
+      // return response
+            res.writeHead(statusCode);
+            res.end(payloadString);
+            console.log('Returning this response ',statusCode,payloadString);
+
+     });
+
   });
 
 
@@ -36,3 +59,26 @@ var server = http.createServer(function(req,res){
 server.listen(3000,function(){
   console.log('server is running on port 3000');
 });
+
+//create handler
+var handler = {};
+
+
+//create router response handler
+handler.hello = function(data,callback){
+  callback(406,
+               {
+                'hello':'Hello How Are You? ',
+                'name' : 'Hirenkumar ',
+                'website' : "www.hirenkumar.com.au"
+              }
+          );
+}
+handler.notFound = function(data,callback){
+  callback(404,{'no':'not found'});
+}
+//create router for parsed request
+var router = {
+    'hello':handler.hello,
+    'no':handler.notFound
+};
