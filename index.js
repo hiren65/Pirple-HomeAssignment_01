@@ -1,6 +1,7 @@
 //import dependencies
 var http = require('http');
 var url = require('url');
+var StringDecoder = require('string_decoder').StringDecoder;
 
 //create server
 var server = http.createServer(function(req,res){
@@ -10,9 +11,26 @@ var server = http.createServer(function(req,res){
   var path = parsedUrl.pathname;
   //using regex trimme path
   var trimmedPath = path.replace(/^\/+|\/+$/g,"");
+  //get query object i.e.{apple:'fruit'}
+  var queryStringObject = parsedUrl.query;
+  //get headers object
+  var header = req.headers;
+  // get method
+  var method = req.method.toLowerCase();
+  //get payload if any
+  var decoder = new StringDecoder('utf-8');
+  var buffer = "";
+  //data event posting
+  req.on('data',function(data){
+      buffer += decoder.write(data);
+  });
+  req.on('end',function(){
+     buffer += decoder.end();
+     res.end("Hello World");
+     console.log("buffer " + buffer);
+  });
 
-  res.end("Hello World");
-  console.log("trimmedPath " + trimmedPath);
+
 });
 //server response
 server.listen(3000,function(){
